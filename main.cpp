@@ -10,6 +10,7 @@
 /*include my own config file in order to separate some variables from this file*/
 #include "config.h"
 
+const int NB_SIGUSR = 5;
 sig_atomic_t sigusrsig = 0;
 void my_handler(int signum)
 {
@@ -35,19 +36,22 @@ int main(){
         int yrotmax = xmax;
         int xrotmax = ymax;
         /*get info from accelerometer script*/
+        // double accelscaling = 0.000009806;
         double accelscaling = 0.000009806;
-        std::string xaccelpathfull = accelpath + "iio:device0/" + xrawdata;
-        std::string yaccelpathfull = accelpath + "iio:device0/" + yrawdata;
+        std::string xaccelpathfull;
+        std::string yaccelpathfull;
         std::ifstream xacceldata;
         std::ifstream yacceldata;
-        xacceldata.open(xaccelpathfull);
-        yacceldata.open(yaccelpathfull);
-        if(xacceldata.good() != true){
-            xaccelpathfull = accelpath + "iio:device1/" + xrawdata;
-            yaccelpathfull = accelpath + "iio:device1/" + yrawdata;
+	for(int i=0; i < 20; i++) {
+            xaccelpathfull = accelpath + "iio:device" + std::to_string(i) + "/" + xrawdata;
+            yaccelpathfull = accelpath + "iio:device" + std::to_string(i) + "/" + yrawdata;
             xacceldata.open(xaccelpathfull);
             yacceldata.open(yaccelpathfull);
-        }
+            if(xacceldata.good()) {
+		//printf("Found you %i...", i);
+		    break;
+	    }
+	}
         int accelxraw = 0 ;
         int accelyraw = 0 ;
         double accelx = 0 ;
@@ -72,12 +76,15 @@ int main(){
 
         while(1){
             signal(SIGUSR1, my_handler);
+	    // sigusrsig --;
             if(sigusrsig == 1){
+                //sigusrsig = NB_SIGUSR;
                 sigusrsig = 0;
                 xacceldata.clear();
                 xacceldata.seekg(0);
                 yacceldata.clear();
                 yacceldata.seekg(0);
+		printf("clearing !!!");
             }
             read(device,&ev, sizeof(ev));
                 //if(ev.type == 1 && ev.value == 1){
@@ -111,7 +118,7 @@ int main(){
                 orientation = 3; /* 3 is rotated left*/
                 //printf("Setting orientation to left\n");
             }else{
-                //printf("could not find accelerometer data, setting orientation to normal\n");
+                printf("could not find accelerometer data, setting orientation to normal\n");
                 orientation = 0;
             }
 
